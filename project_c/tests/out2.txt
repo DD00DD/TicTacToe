@@ -1,0 +1,9 @@
+Assuming X goes first:
+
+X is the winner!
+
+- | - | X
+---------
+O | X | O
+---------
+X | O | X

@@ -1,0 +1,128 @@
+#!/bin/bash
+#source tictactoe_ddao
+# A program that determines the outcome of a tic tac toe game
+# with the user's input of 2 arguments ($1 = X or O, $2 = file of integers from 1-9)
+
+# Name: Derek Dao
+# CSID: ddao@moon.cs.torontomu.ca
+
+#____________________________
+# Error Checking Section:
+
+if [ $1 = X -o $1 = O ] 					#Check for arg 1 (X or O)
+then
+    if [ -r $2 ] 						#Check for arg 2 (readable file)
+    then
+        line=`cat $2 | grep -E "([0-9] ){8}" | tr -d " "` 	#Gets the integer sequence and deletes the spaces between them
+
+        if [ ${#line} -eq 9 ] 					#checks for length integer sequence
+        then
+            for i in {1..9}; do    				#loops through all the characters and checks for duplicates
+                char=`echo $line | cut -c $i`                   #Gets each integer out of line so that it can be deleted in ints
+                ints=`echo $line | tr -d "${char}\n" | wc -c`	#gets the length of new integer strings by deleting duplicate 1-9 
+
+                if [ $ints -lt 8 ] 				#if there is duplicate numbers, the length of ints will be less than 8
+                then
+                  echo "Arg 2: File has duplicate numbers" > /dev/stderr
+                  exit 3
+                fi
+            done
+        else
+            echo "Arg 2: File must contain integers 1-9" > /dev/stderr
+            exit 3
+        fi
+
+    else
+        echo "Arg 2: Must be a readable file" > /dev/stderr
+        exit 2
+    fi
+else
+    echo "Arg 1: must be X or O" > /dev/stderr
+    exit 1
+fi
+
+
+#______________________
+# The code for determining the outcome of tic tac toe
+
+match="0" #----> Global variable match to give the winner value (4 = X, 5 = O, 6 = tie)
+
+checkWinner (){         #function that check for whether X or O is the winner
+   if [ $1 = "XXX" ]
+   then
+       match=4
+   elif [ $1 = "OOO" ]
+   then
+       match=5
+   fi
+}
+
+player2=""  		#assigning player 2 a mark of X or O
+if [ $1 = X ]
+then 
+   player2="O"
+else
+   player2="X"
+fi
+
+placements=(1 2 3 4 5 6 7 8 9)			    # locations for tic tac toe
+order=`cat $2 | grep -E "([0-9] ){8}" | tr -d " "`  # gets the number sequence from $2
+
+for j in {1..9}; do
+    location=`echo $order | cut -c $j` 		    #cut of each integer from $2 for location
+
+    if [ $(($j%2)) -eq 1 ]                          #player 1 turn is odd and player 2 turn is even
+    then
+        placements[$((${location}-1))]="$1"
+    else
+        placements[$((${location}-1))]="$player2"
+    fi
+
+    for m in {0..6..3}; do                          #check horizontal matches
+       horizontal=`echo ${placements[@]:$m:3}|tr -d ' '`
+       checkWinner $horizontal
+    done
+
+    for n in {0..2}; do		                    #check vertical matches
+       vertical=`echo ${placements[$n]}${placements[$(($n+3))]}${placements[$(($n+6))]}`
+       checkWinner $vertical
+    done
+
+    diagonalA=`echo ${placements[0]}${placements[4]}${placements[8]}`  	#check for diagonal matches
+    checkWinner $diagonalA
+    diagonalB=`echo ${placements[2]}${placements[4]}${placements[6]}`
+    checkWinner $diagonalB
+
+    if [ "$j" = 9 -a "$match" != 4 -a "$match" != 5 ]   #checks for a game that resulted in a tie
+    then
+        match=6
+
+    elif [ "$match" = 4 -o "$match" = 5 ] 		#checks if X or O has won the game
+    then
+        break
+    fi
+done
+
+gameboard=" 1 | 2 | 3 \n--------- \n4 | 5 | 6 \n--------- \n7 | 8 | 9 \n"  #gameboard template
+
+for a in {0..8}; do							   #for loop that places Xs and Os
+  gameboard=`echo $gameboard | tr $((${a}+1)) ${placements[${a}]}`         #in the gameboard template
+done
+
+gameboard=`echo $gameboard| sed -e "s/[0-9]/-/g"` #turns remaining open slots to -
+echo -e $gameboard > /dev/stdout
+
+# annouces the outcome of the match
+if [ $match = 4 ] 
+then
+    echo "X is the winner!"
+    exit 4
+elif [ $match = 5 ]
+then
+    echo "O is the winner!"
+    exit 5
+elif [ $match = 6 ] 
+then
+    echo "The game ends in a tie."
+    exit 6
+fi

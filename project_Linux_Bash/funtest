@@ -1,0 +1,15 @@
+#!/bin/bash
+
+block () {
+   break;
+}
+
+for i in {1..9}; do
+   echo hello
+
+   if [ $i = 5 ]
+   then   
+     block()
+   fi
+
+done
